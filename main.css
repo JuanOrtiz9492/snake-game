@@ -1,3 +1,18 @@
+#canvas-container {
+  display: flex;
+  justify-content: center;
+}
+.score-container {
+  display: flex;
+  justify-content: center;
+}
+.score-container span {
+  margin: 20px;
+}
 canvas {
   border: solid 2px black;
+}
+
+h1 {
+  text-align: center;
 }
