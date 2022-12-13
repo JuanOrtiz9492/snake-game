@@ -6,6 +6,7 @@ const sketch = (p) => {
   const CANVAS_WIDTH = 600;
   const CANVAS_HEIGHT = 600;
   const SIZE = 10;
+  const INITIAL_SPEED = 10;
   const score = document.getElementById("score");
   const speed = document.getElementById("speed");
 
@@ -47,6 +48,18 @@ const sketch = (p) => {
       Snake.instace = this;
       this.push(new SnakeBody({ size: SIZE }));
       return this;
+    }
+    get snakeHead() {
+      return this[this.length - 1];
+    }
+    get snakeBody() {
+      return [...this].slice(0, this.length - 1);
+    }
+
+    resetSize() {
+      while (this.length > 1) {
+        this.shift();
+      }
     }
 
     hasHitApple(apple) {
@@ -94,6 +107,11 @@ const sketch = (p) => {
   class Motion {
     constructor() {
       this.currentDirection = GO_RIGHT;
+      this.nextDirection = undefined;
+    }
+
+    forceDirection(direction) {
+      this.currentDirection = direction;
       this.nextDirection = undefined;
     }
 
@@ -156,7 +174,6 @@ const sketch = (p) => {
       const rows = Math.floor(CANVAS_HEIGHT / SIZE);
       const posX = parseInt(Math.random() * SIZE) * cols;
       const posY = parseInt(Math.random() * SIZE) * rows;
-      console.log(posX, posY);
       this._posX = posX;
       this._posY = posY;
     }
@@ -166,16 +183,55 @@ const sketch = (p) => {
       p.rect(this._posX, this._posY, 10, 10);
     }
   }
+
+  class Rules {
+    constructor() {
+      if (typeof Rules.instace === "object") {
+        return this;
+      }
+      Rules.instace = this;
+    }
+    resetGame(snake) {
+      initialSpeed = INITIAL_SPEED;
+      speed.innerText = initialSpeed - INITIAL_SPEED + 1;
+      score.innerText = 0;
+      snake.resetSize();
+      snake.snakeHead.setPos(50, 50);
+      snakeMotion.forceDirection(GO_RIGHT);
+    }
+    checkBorders(snake) {
+      const [xPos, yPos] = snake.snakeHead.getCurrentPos();
+      if (xPos > CANVAS_WIDTH || xPos < 0 || yPos > CANVAS_HEIGHT || yPos < 0) {
+        this.resetGame(snake);
+      }
+    }
+    checkSnakeColition(snake) {
+      const [headXPos, headYPos] = snake.snakeHead.getCurrentPos();
+      const tail = snake.snakeBody;
+      const hasHitBody =
+        tail.length > 0 && tail[0].getPrevPos()[0] !== undefined
+          ? snake.snakeBody.some((bodyPart) => {
+              const [bodyPosX, bodyPosY] = bodyPart.getCurrentPos();
+              return bodyPosX === headXPos && bodyPosY === headYPos;
+            })
+          : false;
+      if (hasHitBody) {
+        this.resetGame(snake);
+      }
+    }
+  }
   let snake = undefined;
   let snakeMotion = undefined;
   let apple = undefined;
-  let initialSpeed = 5;
+  let initialSpeed = INITIAL_SPEED;
   let increased = false;
+  let gameRules = undefined;
   p.setup = () => {
     p.createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
     snake = new Snake();
     snakeMotion = new Motion();
     apple = new Food();
+    gameRules = new Rules(snake);
     apple.generate();
     p.frameRate(initialSpeed);
   };
@@ -186,10 +242,12 @@ const sketch = (p) => {
     snake.draw();
     apple.draw();
     snake.hasHitApple(apple);
+    gameRules.checkBorders(snake);
+    gameRules.checkSnakeColition(snake);
     if (!increased && snake.length % 5 === 0) {
       increased = true;
       initialSpeed++;
-      speed.innerText = initialSpeed - 4;
+      speed.innerText = initialSpeed - INITIAL_SPEED + 1;
       p.frameRate(initialSpeed);
     } else if (snake.length % 5 !== 0) {
       increased = false;
